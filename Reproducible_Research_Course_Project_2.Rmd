@@ -192,29 +192,27 @@ noaa_data_health_damage %>%
 ```
 
 ## Results
+Initially, we can look at total fatalities and injuries in a time series.
 
-```{r}
-time_fatalities_injuries <- 
-  noaa_data_health_damage %>% 
+```{r echo = T, message = FALSE, warning = FALSE, out.width = "100%"}
+noaa_data_health_damage %>% 
   group_by(year) %>% 
   summarise(across(fatalities:injuries,
                   ~ sum(.x))) %>% 
   pivot_longer(!year, 
-               names_to = "Type of damage",
-               values_to = "Total") %>%
-  mutate(year = ymd(year, truncated = 2L)) %>% 
-  
-time_fatalities_injuries %>% 
-  ggplot(aes(year,
-             Total, color = "Type of damage"))+
+               names_to = "damage",
+               values_to = "total") %>%
+  mutate(year = ymd(year, truncated = 2L)) %>%
+  ggplot(aes(year, total, colour = as_factor(damage))) +
   geom_line()+
-  scale_x_date()
+  scale_x_date()+
+  labs(x = "Year",
+       y = "Total",
+       color = "Type of damage")+
+  scale_x_date(breaks = "4 years",
+               date_labels = "%Y")
+  
 
-
-
-time_fatalities_injuries_melt <-
-  reshape2::melt(time_fatalities_injuries,
-       "year")
   
  
 ```
