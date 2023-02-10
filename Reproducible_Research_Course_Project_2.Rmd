@@ -14,7 +14,9 @@ Sys.setlocale("LC_ALL","English")
 library(tidyverse)
 library(janitor)
 library(lubridate)
-library(sf)
+require(maps)
+require(viridis)
+library(patchwork)
 ```
 
 ## Data Processing
@@ -38,7 +40,7 @@ noaa_data <-
 ```
 
 ### Wrangling
-We took an initial look at the data to see which variables would help answer the questions posed in this Assignment. We decided to select the variables indicated in the code below. In addition to the obvious variables to deal with the theme, we kept those that could help localize the events along us and allow us to make a time series. 
+We took an initial look at the data to see which variables would help answer the questions posed in this Assignment. We decided to select the variables indicated in the code below. In addition to the obvious variables to deal with the theme, we kept those that could help localize the events along the US and allow us to make a time series. 
 
 We prepared the variables for analysis, particularly evtype, whose encoding was messy. From the website of the National Severe Storms Laboratory - NOAA (https://www.nssl.noaa.gov/education/svrwx101/), we gather information to make a better encoding. To do so, we use the text patterns in the existing categories and check others with high fatalities or injuries that were cataloged as severe weather. To one can be able to evaluate the new encoding, we kept the evtype variable and created a new one called evtype_rcd. We also made the cleaned exponent variables and calculated new variables for property and crop damage. Finally, we assessed missing values in the variables of interest.
 
@@ -189,12 +191,11 @@ noaa_data_health_damage <-
 noaa_data_health_damage %>% 
   summarise(across(.cols = everything(),
                    ~ sum(is.na(.x))))
-
 ```
 
 ## Results
 ### Across the United States, which types of events are most harmful with respect to population health?
-As indicated in the table below tornadoes cause the most deaths and injuries across the United States.
+As indicated in the table below tornadoes cause the most fatalities and injuries across the United States.
 
 ```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 noaa_data_health_damage %>% 
@@ -233,8 +234,7 @@ noaa_data_health_damage %>%
   rename("Event type" = evtype_rcd)
 ```
 
-
-
+On the map below, the states are colored by total fatalities by tornadoes.
 
 ```{r echo = T}
 states_map <- map_data("state")
@@ -251,8 +251,9 @@ tornado_fatalities_map <-
             tornado_fatalities,
             by = "region")
 
-tornado_fatalities_map %>% 
-ggplot(aes(long, 
+tornado_fatalities_plot <- 
+  tornado_fatalities_map %>%
+  ggplot(aes(long, 
              lat, 
              group = group,
              fill = NA))+
@@ -261,8 +262,46 @@ ggplot(aes(long,
   scale_fill_viridis_c(option = "D")+
   labs(x = NULL,
        y = NULL,
-       fill = "fatalities")+
-  theme_classic()
+       fill = "Fatalities")+
+  theme_classic()+
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.key.size = unit(0.3, "cm"))
+
+tornado_injuries <- 
+  noaa_data_health_damage %>%
+  filter(evtype_rcd == "Tornado") %>% 
+  group_by(region) %>% 
+  summarise(total = sum(injuries)) %>% 
+  arrange(desc(total))
+
+tornado_injuries_map <-
+  left_join(states_map,
+            tornado_injuries,
+            by = "region")
+
+tornado_injuries_plot <- 
+  tornado_injuries_map %>%
+  ggplot(aes(long, 
+             lat, 
+             group = group,
+             fill = NA))+
+  geom_polygon(aes(fill = total), 
+               color = "white")+
+  scale_fill_viridis_c(option = "D")+
+  labs(x = NULL,
+       y = NULL,
+       fill = "Injuries")+
+  theme_classic()+
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.key.size = unit(0.3, "cm"))
+
+tornado_fatalities_plot|tornado_injuries_plot 
 
 ```
 
