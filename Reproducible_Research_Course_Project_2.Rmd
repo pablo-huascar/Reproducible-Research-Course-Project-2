@@ -42,17 +42,17 @@ noaa_data <-
 ### Wrangling
 We took an initial look at the data to see which variables would help answer the questions posed in this Assignment. We decided to select the variables indicated in the code below. In addition to the obvious variables to deal with the theme, we kept those that could help localize the events along the US and allow us to make a time series. 
 
-We prepared the variables for analysis, particularly evtype, whose encoding was messy. From the website of the National Severe Storms Laboratory - NOAA (https://www.nssl.noaa.gov/education/svrwx101/), we gather information to make a better encoding. To do so, we use the text patterns in the existing categories and check others with high fatalities or injuries that were cataloged as severe weather. To one can be able to evaluate the new encoding, we kept the evtype variable and created a new one called evtype_rcd. We also made the cleaned exponent variables and calculated new variables for property and crop damage. Finally, we assessed missing values in the variables of interest.
+We prepared the variables for analysis, particularly evtype, whose encoding was messy. From the website of the National Severe Storms Laboratory - NOAA (https://www.nssl.noaa.gov/education/svrwx101/), we gather information to make a better encoding. To do so, we use the text patterns in the existing categories and check others categories with high fatalities or injuries that were not cataloged as severe weather. To one can be able to evaluate the new encoding, we kept the evtype variable and created a new one called evtype_rcd. We also made the cleaned exponent variables and calculated new variables for property and crop damage. Finally, we assessed missing values in the variables of interest.
 
-bgn_date - date the event occurred
-state_2 - State where the event occurred
-evtype - The type of extreme weather event
-injuries - The number of injuries associated with the event
-fatalities - The number of fatalities associated with the event
-propdmg - Significant digits for the amount of proprety damage
-propdmgexp - Magnitude of the property damage (dollars)
-cropdmg - Significant figures for the amount of crop damage
-cropdmgexp - Magnitude of the crop damage (dollars)
+- bgn_date - date the event occurred  
+- state_2 - State where the event occurred
+- evtype - The type of extreme weather event
+- injuries - The number of injuries associated with the event
+- fatalities - The number of fatalities associated with the event
+- propdmg - Significant digits for the amount of proprety damage
+- propdmgexp - Magnitude of the property damage (dollars)
+- cropdmg - Significant figures for the amount of crop damage
+- cropdmgexp - Magnitude of the crop damage (dollars)
 
 ```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 noaa_data %>% 
@@ -61,14 +61,12 @@ noaa_data %>%
 noaa_data %>% 
   group_by(evtype) %>% 
   summarise(total = sum(fatalities)) %>% 
-  arrange(desc(total)) %>% 
-  view()
+  arrange(desc(total))
 
 noaa_data %>% 
   group_by(evtype) %>% 
   summarise(total = sum(injuries)) %>% 
-  arrange(desc(total)) %>% 
-  view()
+  arrange(desc(total))
 
 unique(noaa_data$propdmgexp)
 
@@ -194,8 +192,37 @@ noaa_data_health_damage %>%
 ```
 
 ## Results
+
+```{r}
+time_fatalities_injuries <- 
+  noaa_data_health_damage %>% 
+  group_by(year) %>% 
+  summarise(across(fatalities:injuries,
+                  ~ sum(.x))) %>% 
+  pivot_longer(!year, 
+               names_to = "Type of damage",
+               values_to = "Total") %>%
+  mutate(year = ymd(year, truncated = 2L)) %>% 
+  
+time_fatalities_injuries %>% 
+  ggplot(aes(year,
+             Total, color = "Type of damage"))+
+  geom_line()+
+  scale_x_date()
+
+
+
+time_fatalities_injuries_melt <-
+  reshape2::melt(time_fatalities_injuries,
+       "year")
+  
+ 
+```
+
+
+
 ### Across the United States, which types of events are most harmful with respect to population health?
-As indicated in the table below tornadoes cause the most fatalities and injuries across the United States.
+As indicated below, tornadoes cause the majority of fatalities and injuries across the United States.
 
 ```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 noaa_data_health_damage %>% 
@@ -211,32 +238,49 @@ noaa_data_health_damage %>%
 
 Texas, Kansas, Oklahoma, Florida, and Nebraska are the five states with the most tornadoes.
 
-```{r echo=T}
+```{r echo=T, message=FALSE, warning=FALSE}
 noaa_data_health_damage %>%
   filter(evtype_rcd == "Tornado") %>% 
-  group_by(evtype_rcd, state_2) %>% 
+  group_by(evtype_rcd, 
+           state_2) %>% 
   count() %>%
   arrange(desc(n)) %>%
   pivot_wider(names_from = state_2,
               values_from = n)
 ```
 
-Alabama has the most fatalities from tornadoes, followed by Texas and Mississippi.
 
-```{r}
+Texas has the most injuries from tornadoes, followed by Alabama and Mississippi.
+
+```{r echo=T, message=FALSE, warning=FALSE}
 noaa_data_health_damage %>%
   filter(evtype_rcd == "Tornado") %>% 
-  group_by(evtype_rcd, state_2) %>%
-  summarise(total = sum(fatalities)) %>% 
+  group_by(evtype_rcd, 
+           state_2) %>%
+  summarise(total = sum(injuries)) %>% 
   arrange(desc(total)) %>%
   pivot_wider(names_from = state_2,
               values_from = total) %>% 
   rename("Event type" = evtype_rcd)
 ```
 
-On the map below, the states are colored by total fatalities by tornadoes.
+Alabama has the most fatalities from tornadoes. Texas and Mississippi come next.
 
-```{r echo = T}
+```{r message=FALSE, warning=FALSE}
+noaa_data_health_damage %>% 
+  filter(evtype_rcd == "Tornado") %>% 
+  group_by(evtype_rcd,
+           state_2) %>% 
+  summarise(total = sum(fatalities)) %>% 
+  arrange(desc(total)) %>% 
+  pivot_wider(names_from = state_2,
+              values_from = total) %>% 
+  rename("Event type" = evtype_rcd)
+  
+```
+On the maps below, the states are colored by total fatalities and injuries by tornadoes.
+
+```{r echo = T, out.width = "100%"}
 states_map <- map_data("state")
 
 tornado_fatalities <- 
@@ -268,7 +312,8 @@ tornado_fatalities_plot <-
         axis.text.y = element_blank(),
         axis.ticks.x = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.key.size = unit(0.3, "cm"))
+        legend.key.size = unit(0.3, "cm"),
+        aspect.ratio = 1)
 
 tornado_injuries <- 
   noaa_data_health_damage %>%
@@ -299,17 +344,34 @@ tornado_injuries_plot <-
         axis.text.y = element_blank(),
         axis.ticks.x = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.key.size = unit(0.3, "cm"))
+        legend.key.size = unit(0.3, "cm"),
+        aspect.ratio = 1)
 
-tornado_fatalities_plot|tornado_injuries_plot 
+join_maps <- tornado_fatalities_plot|tornado_injuries_plot 
+
+join_maps + plot_annotation(title = "Total fatalities and injuries by tornadoes in the US (1950-2011)") 
 
 ```
+### Across the United States, which types of events have the greatest economic consequences?
+As shown in the following table, on average, hurricanes are the events that cause the most damage to properties and crops.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+noaa_data_health_damage %>% 
+  group_by(evtype_rcd) %>% 
+  summarise(across(propdmg_calc:cropdmg_calc,
+                   ~ mean(.x) %>% 
+                     round(2))) %>% 
+  arrange(desc(propdmg_calc)) %>% 
+  rename("Event type" = evtype_rcd,
+         "Proprety damage" = propdmg_calc,
+         "Crop damage" = cropdmg_calc)
 
+```
 
 
 ```{r}
-
+n
 ```
+
 
 
 
