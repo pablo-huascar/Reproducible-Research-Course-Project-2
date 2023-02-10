@@ -1,0 +1,276 @@
+---
+title: "Teste"
+output: 
+  html_document:
+    keep_md: true
+date: "2023-02-09"
+---
+## Synopsis
+
+## Packages and configurations
+
+```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
+Sys.setlocale("LC_ALL","English")
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(sf)
+```
+
+## Data Processing
+### Importing
+Initially, we downloaded the data from the link indicated on the Coursera website and then save it in a tibble called noaa_data. We use the clean_names function from the janitor package, so we don't have to deal with capitalized words.
+
+```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
+if(!file.exists("./data")){dir.create("./data")}
+
+url <- 
+  "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+
+destfile <- "./data/StormData.csv.bz2"
+
+download.file(url = url,
+              destfile = destfile)
+
+noaa_data <- 
+  read_csv("./data/StormData.csv.bz2") %>% 
+  clean_names()
+```
+
+### Wrangling
+We took an initial look at the data to see which variables would help answer the questions posed in this Assignment. We decided to select the variables indicated in the code below. In addition to the obvious variables to deal with the theme, we kept those that could help localize the events along us and allow us to make a time series. 
+
+We prepared the variables for analysis, particularly evtype, whose encoding was messy. From the website of the National Severe Storms Laboratory - NOAA (https://www.nssl.noaa.gov/education/svrwx101/), we gather information to make a better encoding. To do so, we use the text patterns in the existing categories and check others with high fatalities or injuries that were cataloged as severe weather. To one can be able to evaluate the new encoding, we kept the evtype variable and created a new one called evtype_rcd. We also made the cleaned exponent variables and calculated new variables for property and crop damage. Finally, we assessed missing values in the variables of interest.
+
+bgn_date - date the event occurred
+state_2 - State where the event occurred
+evtype - The type of extreme weather event
+injuries - The number of injuries associated with the event
+fatalities - The number of fatalities associated with the event
+propdmg - Significant digits for the amount of proprety damage
+propdmgexp - Magnitude of the property damage (dollars)
+cropdmg - Significant figures for the amount of crop damage
+cropdmgexp - Magnitude of the crop damage (dollars)
+
+```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
+noaa_data %>% 
+  glimpse()
+
+noaa_data %>% 
+  group_by(evtype) %>% 
+  summarise(total = sum(fatalities)) %>% 
+  arrange(desc(total)) %>% 
+  view()
+
+noaa_data %>% 
+  group_by(evtype) %>% 
+  summarise(total = sum(injuries)) %>% 
+  arrange(desc(total)) %>% 
+  view()
+
+unique(noaa_data$propdmgexp)
+
+unique(noaa_data$propdmgexp)
+
+noaa_data_health_damage <- 
+  noaa_data %>%
+  select(bgn_date,
+         state_2,
+         evtype,
+         fatalities,
+         injuries,
+         propdmg,
+         propdmgexp,
+         cropdmg,
+         cropdmgexp) %>%
+  mutate(bgn_date = mdy_hms(bgn_date),
+         year = year(bgn_date),
+         state_2 = as_factor(state_2),
+         evtype = as_factor(evtype),
+         evtype_rcd = case_when(str_detect(evtype,
+                                     "STORM") ~ "Thunderstorm",
+                          str_detect(evtype,"TSTM") ~ "Thunderstorm",
+                          str_detect(evtype,
+                                     "TORNADO") ~ "Tornado",
+                          str_detect(evtype, "FLOOD") ~ "Flood",
+                          str_detect(evtype, "LIGHTNING") ~ "Lightning",
+                          str_detect(evtype, "HAIL") ~ "Hail",
+                          str_detect(evtype, "WINDS") ~ "Damaging winds",
+                          str_detect(evtype, "SNOW") ~ "Winter weather",
+                          str_detect(evtype, "COLD") ~ "Winter weather",
+                          str_detect(evtype, "ICE") ~ "Winter weather",
+                          str_detect(evtype, "BLIZZARD") ~ "Winter weather",
+                          str_detect(evtype, "COLD") ~ "Winter weather",
+                          str_detect(evtype, "Cold") ~ "Winter weather",
+                          str_detect(evtype, "ICY") ~ "Winter weather",
+                          str_detect(evtype, "WINTER WEATHER") ~ "Winter weather",
+                          str_detect(evtype, "HEAT") ~ "Excessive heat",
+                          str_detect(evtype, "AVALANCHE") ~ "Avalanche",
+                          str_detect(evtype, "CURRENT") ~ "Rip current",
+                          str_detect(evtype, "HURRICANE") ~ "Hurricane",
+                          str_detect(evtype, "FIRE") ~ "Wild Fire",
+                          str_detect(evtype, "FOG") ~ "Fog",
+                          TRUE ~ "Others"),
+         propdmgexp_num = case_when(propdmgexp %in% c("+", "-","0") ~ 1,
+                                propdmgexp %in% "1" ~ 10,
+                                propdmgexp %in% c("2", "H","h") ~ 100,
+                                propdmgexp %in% c("3", "K") ~ 1000,
+                                propdmgexp %in% "4" ~ 10000,
+                                propdmgexp %in% "5" ~ 100000,
+                                propdmgexp %in% c("6", "M", "m") ~ 1000000,
+                                propdmgexp %in% "7" ~ 10000000,
+                                propdmgexp %in% "8" ~ 100000000,
+                                propdmgexp %in% "?" ~ 0,
+                                propdmgexp %in% "B" ~ 1000000000,
+                                TRUE ~ 1),
+         cropdmgexp_num = case_when(cropdmgexp %in% "0" ~ 1,
+                                cropdmgexp %in% "2" ~ 100,
+                                cropdmgexp %in% "?" ~ 0,
+                                cropdmgexp %in% "B" ~ 1000000000,
+                                cropdmgexp %in% "K" ~ 1000,
+                                cropdmgexp %in% "k" ~ 1000,
+                                cropdmgexp %in% "M" ~ 1000000,
+                                cropdmgexp %in% "m" ~ 1000000,
+                                TRUE ~ 1),
+         propdmg_calc = propdmg*propdmgexp_num,
+         cropdmg_calc = cropdmg*cropdmgexp_num,
+         region  = case_when(state_2 %in% "AL" ~ "alabama",
+                             state_2 %in% "AZ" ~ "arizona",
+                             state_2 %in% "AR" ~ "arkansas",
+                             state_2 %in% "CA" ~ "california",
+                             state_2 %in% "CO" ~ "colorado",
+                             state_2 %in% "CT" ~ "connecticut",
+                             state_2 %in% "DE" ~ "delaware",
+                             state_2 %in% "DC" ~ "district of columbia",
+                             state_2 %in% "FL" ~ "florida",
+                             state_2 %in% "GA" ~ "georgia",
+                             state_2 %in% "ID" ~ "idaho",
+                             state_2 %in% "IL" ~ "illinois",
+                             state_2 %in% "IN" ~ "indiana",
+                             state_2 %in% "IA" ~ "iowa",
+                             state_2 %in% "KS" ~ "kansas",
+                             state_2 %in% "KY" ~ "kentucky",
+                             state_2 %in% "LA" ~ "louisiana",
+                             state_2 %in% "ME" ~ "maine",
+                             state_2 %in% "MD" ~ "maryland",
+                             state_2 %in% "MA" ~ "massachusetts",
+                             state_2 %in% "MI" ~"michigan",
+                             state_2 %in% "MN" ~ "minnesota",
+                             state_2 %in% "MS" ~ "mississippi",
+                             state_2 %in% "MO" ~ "missouri",
+                             state_2 %in% "MT" ~ "montana",
+                             state_2 %in% "NE" ~ "nebraska",
+                             state_2 %in% "NV" ~ "nevada",
+                             state_2 %in% "NH" ~ "new hampshire",
+                             state_2 %in% "NJ" ~ "new jersey",
+                             state_2 %in% "NM" ~"new mexico",
+                             state_2 %in% "NY" ~ "new york",
+                             state_2 %in% "NC" ~ "north carolina",
+                             state_2 %in% "ND" ~ "north dakota",
+                             state_2 %in% "OH" ~ "ohio",
+                             state_2 %in% "OK" ~ "oklahoma",
+                             state_2 %in% "OR" ~ "oregon",
+                             state_2 %in% "PA" ~ "pennsylvania",
+                             state_2 %in% "RI" ~ "rhode island",
+                             state_2 %in% "SC" ~  "south carolina",
+                             state_2 %in% "SD" ~ "south dakota",
+                             state_2 %in% "TN" ~ "tennessee",
+                             state_2 %in% "TX" ~ "texas",
+                             state_2 %in% "UT" ~ "utah",
+                             state_2 %in% "VT" ~ "vermont",
+                             state_2 %in% "VA" ~ "virginia",
+                             state_2 %in% "WA" ~ "washington",
+                             state_2 %in% "WV" ~ "west virginia",
+                             state_2 %in% "WI" ~ "wisconsin",
+                             state_2 %in% "WY" ~ "wyoming")) %>% 
+  relocate(year, .after = bgn_date) %>%
+  relocate(evtype_rcd, .after = evtype)
+
+noaa_data_health_damage %>% 
+  summarise(across(.cols = everything(),
+                   ~ sum(is.na(.x))))
+
+```
+
+## Results
+### Across the United States, which types of events are most harmful with respect to population health?
+As indicated in the table below tornadoes cause the most deaths and injuries across the United States.
+
+```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
+noaa_data_health_damage %>% 
+  group_by(evtype_rcd) %>% 
+  summarise(across(fatalities:
+                   injuries,
+                   ~ sum(.x))) %>% 
+  arrange(desc(fatalities)) %>% 
+  rename("Event type" = evtype_rcd,
+         "Total fatalities" = fatalities,
+         "Total injuries" = injuries)
+```
+
+Texas, Kansas, Oklahoma, Florida, and Nebraska are the five states with the most tornadoes.
+
+```{r echo=T}
+noaa_data_health_damage %>%
+  filter(evtype_rcd == "Tornado") %>% 
+  group_by(evtype_rcd, state_2) %>% 
+  count() %>%
+  arrange(desc(n)) %>%
+  pivot_wider(names_from = state_2,
+              values_from = n)
+```
+
+Alabama has the most fatalities from tornadoes, followed by Texas and Mississippi.
+
+```{r}
+noaa_data_health_damage %>%
+  filter(evtype_rcd == "Tornado") %>% 
+  group_by(evtype_rcd, state_2) %>%
+  summarise(total = sum(fatalities)) %>% 
+  arrange(desc(total)) %>%
+  pivot_wider(names_from = state_2,
+              values_from = total) %>% 
+  rename("Event type" = evtype_rcd)
+```
+
+
+
+
+```{r echo = T}
+states_map <- map_data("state")
+
+tornado_fatalities <- 
+  noaa_data_health_damage %>%
+  filter(evtype_rcd == "Tornado") %>% 
+  group_by(region) %>% 
+  summarise(total = sum(fatalities)) %>% 
+  arrange(desc(total))
+
+tornado_fatalities_map <-
+  left_join(states_map,
+            tornado_fatalities,
+            by = "region")
+
+tornado_fatalities_map %>% 
+ggplot(aes(long, 
+             lat, 
+             group = group,
+             fill = NA))+
+  geom_polygon(aes(fill = total), 
+               color = "white")+
+  scale_fill_viridis_c(option = "D")+
+  labs(x = NULL,
+       y = NULL,
+       fill = "fatalities")+
+  theme_classic()
+
+```
+
+
+
+```{r}
+
+```
+
+
+
