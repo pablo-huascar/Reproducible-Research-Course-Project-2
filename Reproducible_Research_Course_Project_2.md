@@ -1,14 +1,13 @@
 ---
-title: "Teste"
+title: "U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database: damages to population health, properties, and crops"
 output: 
   html_document:
     keep_md: true
 date: "2023-02-09"
 ---
 ## Synopsis
-
+From data from the U.S. National Oceanic and Atmospheric Administration's (NOAA), we analysis of the impact of catastrophic events on population health, property and, crops. Initially, we recoded the data related to the variable “evtype” (the type of extreme weather event) so that there was greater accuracy concerning the events studied. Then, we made a time series to evaluate the occurrence of injuries and fatalities over the period available in the data. Finally, we assessed the most harmful events to the health of the US population and those that caused the most significant economic damage.
 ## Packages and configurations
-
 
 ```r
 Sys.setlocale("LC_ALL","English")
@@ -26,11 +25,9 @@ require(maps)
 require(viridis)
 library(patchwork)
 ```
-
 ## Data Processing
 ### Importing
 Initially, we downloaded the data from the link indicated on the Coursera website and then save it in a tibble called noaa_data. We use the clean_names function from the janitor package, so we don't have to deal with capitalized words.
-
 
 ```r
 if(!file.exists("./data")){dir.create("./data")}
@@ -47,21 +44,18 @@ noaa_data <-
   read_csv("./data/StormData.csv.bz2") %>% 
   clean_names()
 ```
-
-### Wrangling
 We took an initial look at the data to see which variables would help answer the questions posed in this Assignment. We decided to select the variables indicated in the code below. In addition to the obvious variables to deal with the theme, we kept those that could help localize the events along the US and allow us to make a time series. 
-
 We prepared the variables for analysis, particularly evtype, whose encoding was messy. From the website of the National Severe Storms Laboratory - NOAA (https://www.nssl.noaa.gov/education/svrwx101/), we gather information to try to make a better encoding. To do so, we use the text patterns in the existing categories and check others categories with high fatalities or injuries that were not cataloged as severe weather. To one can be able to evaluate the new encoding, we kept the evtype variable and created a new one called evtype_rcd. We also made the cleaned exponent variables and calculated new variables for property and crop damage. Finally, we assessed missing values in the variables of interest.
 
-- bgn_date - date the event occurred  
-- state_2 - State where the event occurred
-- evtype - The type of extreme weather event
-- injuries - The number of injuries associated with the event
-- fatalities - The number of fatalities associated with the event
-- propdmg - Significant digits for the amount of proprety damage
-- propdmgexp - Magnitude of the property damage (dollars)
-- cropdmg - Significant figures for the amount of crop damage
-- cropdmgexp - Magnitude of the crop damage (dollars)
+- bgn_date - date the event occurred;  
+- state_2 - State where the event occurred;
+- evtype - The type of extreme weather event;
+- injuries - The number of injuries associated with the event;
+- fatalities - The number of fatalities associated with the event;
+- propdmg - Significant digits for the amount of proprety damage;
+- propdmgexp - Magnitude of the property damage (dollars);
+- cropdmg - Significant figures for the amount of crop damage;
+- cropdmgexp - Magnitude of the crop damage (dollars).
 
 
 ```r
@@ -304,11 +298,8 @@ noaa_data_health_damage %>%
 ## #   and abbreviated variable names 1: evtype_rcd, 2: fatalities, 3: injuries,
 ## #   4: propdmgexp
 ```
-
-
 ## Results
 Initially, we can look at total fatalities and injuries in a time series.
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -332,7 +323,6 @@ noaa_data_health_damage %>%
 
 <img src="Reproducible_Research_Course_Project_2_files/figure-html/unnamed-chunk-4-1.png" width="100%" />
 Around 1995 there was a peak in fatalities. That year there were a large number of deaths from excessive heat. 
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -358,9 +348,7 @@ noaa_data_health_damage %>%
 ## #   1: `Excessive heat`, 2: `Winter weather`, 3: Lightning, 4: Thunderstorm,
 ## #   5: Hurricane, 6: `Rip current`
 ```
-
 There was a peak in injuries between 1997 and 1999. When analyzing data from this period, we see many injuries due to floods in 1998. 
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -386,10 +374,8 @@ noaa_data_health_damage %>%
 ## #   1: `Excessive heat`, 2: Thunderstorm, 3: `Winter weather`, 4: Lightning,
 ## #   5: `Wild Fire`
 ```
-
 ### Across the United States, which types of events are most harmful with respect to population health?
 As indicated below, tornadoes caused the majority of fatalities and injuries across the United States in the analyzed period.
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -422,9 +408,7 @@ noaa_data_health_damage %>%
 ## 13 Damaging winds                 56              379
 ## 14 Hail                           15             1371
 ```
-
 Texas, Kansas, Oklahoma, Florida, and Nebraska are the five states with the most tornadoes.
-
 
 ```r
 noaa_data_health_damage %>%
@@ -452,7 +436,6 @@ noaa_data_health_damage %>%
 ## #   DC <int>
 ```
 Texas has the most injuries from tornadoes, followed by Alabama and Mississippi.
-
 
 ```r
 noaa_data_health_damage %>%
@@ -482,7 +465,6 @@ noaa_data_health_damage %>%
 ```
 
 Alabama has the most fatalities from tornadoes. Texas and Mississippi come next.
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -587,7 +569,6 @@ join_maps + plot_annotation(title = "Total fatalities and injuries by tornadoes 
 <img src="Reproducible_Research_Course_Project_2_files/figure-html/unnamed-chunk-11-1.png" width="100%" />
 On the other hand, we can analyze which type of event causes, on average, the highest number of fatalities and injuries. Let us take a look at injuries first. As one can see below, hurricanes and excessive heat are the events that, on average, cause the most injuries.
 
-
 ```r
 noaa_data_health_damage %>% 
   group_by(evtype_rcd) %>% 
@@ -619,7 +600,6 @@ noaa_data_health_damage %>%
 ```
 
 Excessive heat is the type of event that causes the highest number of fatalities on average
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -688,7 +668,6 @@ noaa_data_health_damage %>%
 
 On average, the state of Louisiana has the highest property damage losses.
 
-
 ```r
 noaa_data_health_damage %>% 
   group_by(evtype_rcd,
@@ -728,9 +707,7 @@ noaa_data_health_damage %>%
 ## #   IA <dbl>, OK <dbl>, DC <dbl>, RI <dbl>, WA <dbl>, AK <dbl>, KS <dbl>,
 ## #   NE <dbl>, WV <dbl>, ID <dbl>, MT <dbl>, SD <dbl>, ME <dbl>, NH <dbl>, ...
 ```
-
 Regarding crop damages, the state of Mississippi has the highest losses.
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -771,9 +748,7 @@ noaa_data_health_damage %>%
 ## #   HI <dbl>, CO <dbl>, MT <dbl>, NM <dbl>, WY <dbl>, TN <dbl>, ME <dbl>,
 ## #   VI <dbl>, MA <dbl>, NH <dbl>, AK <dbl>, DC <dbl>, CT <dbl>, AM <dbl>, ...
 ```
-
 We can also evaluate the type of event that caused the most significant damage in the period available in the data. Adding up all the losses, floods are the most economically catastrophic event, followed by hurricanes.
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -805,8 +780,6 @@ noaa_data_health_damage %>%
 ## 13 Avalanche               3721800              0
 ## 14 Rip current              163000              0
 ```
-
-
 
 ```r
 noaa_data_health_damage %>% 
@@ -842,5 +815,3 @@ noaa_data_health_damage %>%
 ```
 
 <img src="Reproducible_Research_Course_Project_2_files/figure-html/unnamed-chunk-18-1.png" width="100%" />
-
-
