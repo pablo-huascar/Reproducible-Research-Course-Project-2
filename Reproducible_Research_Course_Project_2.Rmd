@@ -424,21 +424,65 @@ noaa_data_health_damage %>%
 
 ```
 
+On average, the state of Louisiana has the highest property damage losses.
 
-```{r}
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+noaa_data_health_damage %>% 
+  group_by(evtype_rcd,
+           state_2) %>% 
+  summarise(total = mean(propdmg_calc) %>% 
+              round(2)) %>% 
+  arrange(-total) %>% 
+  pivot_wider(names_from = state_2,
+              values_from = total) %>% 
+  rename("Event type" = evtype_rcd)
+```
+
+Regarding crop damages, the state of Mississippi has the highest losses.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+noaa_data_health_damage %>% 
+  group_by(evtype_rcd,
+           state_2) %>% 
+  summarise(total = mean(cropdmg_calc) %>% 
+              round(2)) %>% 
+  arrange(-total) %>% 
+  pivot_wider(names_from = state_2,
+              values_from = total) %>% 
+  rename("Event type" = evtype_rcd)
 
 ```
 
-Podemos também avaliar o evento que causou o maior montante de prejuizos somados. Ao longo do períodos, somados todos os prejuídos a propriedades e plantações
+Podemos também avaliar o tipo de evento que causou o maior montante no período disponível nos dados. Somados todos os prejuídos, as inundações são o evento mais catastrófico economicamente, seguido dos furacões
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 noaa_data_health_damage %>% 
   group_by(evtype_rcd) %>%
   summarise(across(propdmg_calc:cropdmg_calc,
                    ~ sum(.x))) %>% 
-  arrange(desc(propdmg_calc))
+  arrange(desc(propdmg_calc)) %>% 
+  rename("Event type" = evtype_rcd,
+         "Proprety damage" = propdmg_calc,
+         "Crop damage" = cropdmg_calc)
 ```
 
 
+```{r}
+noaa_data_health_damage %>% 
+  group_by(evtype_rcd) %>% 
+  summarise(across(propdmg_calc:cropdmg_calc,
+                   ~ sum(.x))) %>%
+  arrange(desc(propdmg_calc)) %>% 
+  pivot_longer(!evtype_rcd,
+               names_to = "damage",
+               values_to = "total") %>% 
+  filter(total >= median(total)) %>% 
+  ggplot(aes(evtype_rcd,
+             total), color = fct_reorder(evtype_rcd,
+                                         media(total)))+
+  geom_bar(stat = indenti)
+
+
+```
 
 
