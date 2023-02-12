@@ -1,12 +1,18 @@
 ---
 title: "U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database: damages to population health, properties, and crops"
+author: 
+- "Francisco Pablo Huascar Aragão Pinheiro"
+- "Data Science Specialization - Coursera"
 output: 
   html_document:
     keep_md: true
 date: "2023-02-09"
 ---
 ## Synopsis
-From data from the U.S. National Oceanic and Atmospheric Administration's (NOAA), we analysis of the impact of catastrophic events on population health, property and, crops. Initially, we recoded the data related to the variable “evtype” (the type of extreme weather event) so that there was greater accuracy concerning the events studied. Then, we made a time series to evaluate the occurrence of injuries and fatalities over the period available in the data. Finally, we assessed the most harmful events to the health of the US population and those that caused the most significant economic damage.
+This assignment is part of the reproducible research course from Coursera and was supposed to be written in English. As English is not my native language, I apologize in advance for any mistakes.  
+
+From the U.S. National Oceanic and Atmospheric Administration’s (NOAA) data, we analyzed the impact of catastrophic events on population health, property, and crops. Initially, we recoded the data related to the variable “evtype” (the type of extreme weather event) so that there was greater accuracy concerning the events studied. Then, we made a time series to evaluate the occurrence of injuries and fatalities over the period available in the data. Finally, we assessed the most harmful events to the health of the U.S. population and those that caused the most significant economic damage.
+
 ## Packages and configurations
 ```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 Sys.setlocale("LC_ALL","English")
@@ -16,6 +22,7 @@ library(lubridate)
 require(maps)
 require(viridis)
 library(patchwork)
+library(kableExtra)
 ```
 ## Data Processing
 ### Importing
@@ -35,7 +42,7 @@ noaa_data <-
   read_csv("./data/StormData.csv.bz2") %>% 
   clean_names()
 ```
-We took an initial look at the data to see which variables would help answer the questions posed in this Assignment. We decided to select the variables indicated in the code below. In addition to the obvious variables to deal with the theme, we kept those that could help localize the events along the US and allow us to make a time series. 
+We took an initial look at the data to see which variables would help answer the questions posed in this assignment. We decided to select the variables indicated below. In addition to the obvious variables to deal with the theme, we kept those that could help localize the events along the U.S. and allow us to make a time series. 
 We prepared the variables for analysis, particularly evtype, whose encoding was messy. From the website of the National Severe Storms Laboratory - NOAA (https://www.nssl.noaa.gov/education/svrwx101/), we gather information to try to make a better encoding. To do so, we use the text patterns in the existing categories and check others categories with high fatalities or injuries that were not cataloged as severe weather. To one can be able to evaluate the new encoding, we kept the evtype variable and created a new one called evtype_rcd. We also made the cleaned exponent variables and calculated new variables for property and crop damage. Finally, we assessed missing values in the variables of interest.
 
 - bgn_date - date the event occurred;  
@@ -51,16 +58,35 @@ We prepared the variables for analysis, particularly evtype, whose encoding was 
 ```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 noaa_data %>% 
   glimpse()
+```
+
+```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 
 noaa_data %>% 
   group_by(evtype) %>% 
   summarise(total = sum(fatalities)) %>% 
-  arrange(desc(total))
+  arrange(desc(total))%>%
+  kable() %>% 
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "50%", height = "200px")
+```
 
+```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 noaa_data %>% 
   group_by(evtype) %>% 
   summarise(total = sum(injuries)) %>% 
-  arrange(desc(total))
+  arrange(desc(total)) %>%
+  kable() %>% 
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "50%", height = "200px")
+
+```
+
+```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 
 unique(noaa_data$propdmgexp)
 
@@ -178,10 +204,21 @@ noaa_data_health_damage <-
                              state_2 %in% "WY" ~ "wyoming")) %>% 
   relocate(year, .after = bgn_date) %>%
   relocate(evtype_rcd, .after = evtype)
+```
+
+```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
 
 noaa_data_health_damage %>% 
   summarise(across(.cols = everything(),
-                   ~ sum(is.na(.x))))
+                   ~ sum(is.na(.x)))) %>% 
+  pivot_longer(cols = bgn_date:region,
+               names_to = "Variable",
+               values_to = "Sum") %>% 
+  kable() %>%
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "50%", height = "200px")
 ```
 ## Results
 Initially, we can look at total fatalities and injuries in a time series.
@@ -200,7 +237,7 @@ noaa_data_health_damage %>%
   labs(x = "Year",
        y = "Total",
        color = "Type of damage")+
-  scale_x_date(breaks = "4 years",
+  scale_x_date(breaks = "5 years",
                date_labels = "%Y")+
   theme_classic()
 ```
@@ -211,10 +248,21 @@ noaa_data_health_damage %>%
   group_by(evtype_rcd, 
            year) %>% 
   summarise(total = sum(fatalities)) %>% 
-  arrange(desc(total)) %>% 
-  pivot_wider(names_from = evtype_rcd,
-              values_from = total) %>% 
-  rename("Year" = year)
+  arrange(desc(total)) %>%
+  pivot_wider(names_from = year,
+              values_from = total) %>%
+  rename("Type of event" = evtype_rcd) %>%
+  relocate("1994",
+           .before = "1995") %>% 
+  kable(caption = "Total fatalities by type of event from 1994 to 1996") %>% 
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>%
+  scroll_box(width = "50%", height = "200px")
+  
+  
+
+
 ```
 There was a peak in injuries between 1997 and 1999. When analyzing data from this period, we see many injuries due to floods in 1998. 
 ```{r echo=T, message=FALSE, warning=FALSE, paged.print=TRUE}
@@ -225,10 +273,17 @@ noaa_data_health_damage %>%
            year) %>% 
   summarise(total = sum(injuries)) %>% 
   arrange(desc(total)) %>% 
-  pivot_wider(names_from = evtype_rcd,
+  pivot_wider(names_from = year,
               values_from = total) %>% 
-  rename("Year" = year)
-
+  rename("Type of event" = evtype_rcd) %>%
+  relocate("1997",
+           .before = "1998") %>%
+  kable(caption = "Total injuries by type of event from 1997 to 1999") %>% 
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "50%", height = "200px")
+  
 ```
 ### Across the United States, which types of events are most harmful with respect to population health?
 As indicated below, tornadoes caused the majority of fatalities and injuries across the United States in the analyzed period.
@@ -241,7 +296,10 @@ noaa_data_health_damage %>%
   arrange(desc(fatalities)) %>% 
   rename("Event type" = evtype_rcd,
          "Total fatalities" = fatalities,
-         "Total injuries" = injuries)
+         "Total injuries" = injuries) %>% 
+  kable(caption = "Total fatalities and injuries by event type") %>% 
+  kable_styling(latex_options = "striped") %>% 
+  scroll_box(width = "100%", height = "200px")
 ```
 Texas, Kansas, Oklahoma, Florida, and Nebraska are the five states with the most tornadoes.
 ```{r echo=T, message=FALSE, warning=FALSE}
@@ -251,8 +309,15 @@ noaa_data_health_damage %>%
            state_2) %>% 
   count() %>%
   arrange(desc(n)) %>%
-  pivot_wider(names_from = state_2,
-              values_from = n)
+  pivot_wider(names_from = evtype_rcd,
+              values_from = n) %>%
+  rename("State" = state_2,
+         "n" = Tornado) %>% 
+  kable(caption = "Total number of tornadoes by state") %>% 
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "33%", height = "200px")
 ```
 Texas has the most injuries from tornadoes, followed by Alabama and Mississippi.
 ```{r echo=T, message=FALSE, warning=FALSE}
@@ -262,9 +327,15 @@ noaa_data_health_damage %>%
            state_2) %>%
   summarise(total = sum(injuries)) %>% 
   arrange(desc(total)) %>%
-  pivot_wider(names_from = state_2,
+  pivot_wider(names_from = evtype_rcd,
               values_from = total) %>% 
-  rename("Event type" = evtype_rcd)
+  rename("State" = state_2,
+         "n" = Tornado) %>% 
+  kable(caption = "Total injuries due to tornadoes by state") %>%
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "33%", height = "200px")
 ```
 
 Alabama has the most fatalities from tornadoes. Texas and Mississippi come next.
@@ -275,9 +346,15 @@ noaa_data_health_damage %>%
            state_2) %>% 
   summarise(total = sum(fatalities)) %>% 
   arrange(desc(total)) %>% 
-  pivot_wider(names_from = state_2,
+  pivot_wider(names_from = evtype_rcd,
               values_from = total) %>% 
-  rename("Event type" = evtype_rcd)
+  rename("State" = state_2,
+         "n" = Tornado) %>% 
+  kable(caption = "Total fatalities due to tornadoes by state") %>%
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "33%", height = "200px")
   
 ```
 On the maps below, the states are colored by total fatalities and injuries by tornadoes in the period.
@@ -361,8 +438,12 @@ noaa_data_health_damage %>%
   summarise(m = mean(injuries) %>% 
               round(2)) %>%
   arrange(desc(m)) %>% 
-  rename("Event type" = evtype_rcd,
-        "Average injuries" = m)
+  rename("Event type" = evtype_rcd) %>% 
+  kable(caption = "Average injuries by type of event") %>%
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "33%", height = "200px")
 
 ```
 
@@ -374,8 +455,12 @@ noaa_data_health_damage %>%
   summarise(m = mean(fatalities) %>% 
               round(2)) %>% 
   arrange(desc(m)) %>% 
-  rename("Event type" = evtype_rcd,
-        "Average fatalities" = m)
+  rename("Event type" = evtype_rcd) %>% 
+ kable(caption = "Average fatalities by type of event") %>%
+  kable_styling(latex_options = "striped",
+                full_width = F,
+                position = "left") %>% 
+  scroll_box(width = "33%", height = "200px")
 
 
 ```
@@ -390,22 +475,27 @@ noaa_data_health_damage %>%
                      round(2))) %>% 
   arrange(desc(propdmg_calc)) %>% 
   rename("Event type" = evtype_rcd,
-         "Proprety damage" = propdmg_calc,
-         "Crop damage" = cropdmg_calc)
-
+         "Property damage" = propdmg_calc,
+         "Crop damage" = cropdmg_calc) %>% 
+  kable(caption = "Property and crop damages by event type") %>% 
+  kable_styling(latex_options = "striped") %>% 
+  scroll_box(width = "100%", height = "200px")
 ```
 
 On average, the state of Louisiana has the highest property damage losses.
-```{r echo=TRUE, message=FALSE, warning=FALSE}
-noaa_data_health_damage %>% 
+```{r echo=TRUE, message=FALSE, warning=FALSE, paged.print=TRUE}
+noaa_data_health_damage %>%
   group_by(evtype_rcd,
            state_2) %>% 
   summarise(total = mean(propdmg_calc) %>% 
               round(2)) %>% 
   arrange(-total) %>% 
   pivot_wider(names_from = state_2,
-              values_from = total) %>% 
-  rename("Event type" = evtype_rcd)
+              values_from = total) %>%
+  rename("Event type" = evtype_rcd) %>%
+  kable(caption = "Property damage by event type and state") %>% 
+  kable_styling(latex_options = "striped") %>% 
+  scroll_box(width = "100%", height = "200px")
 ```
 Regarding crop damages, the state of Mississippi has the highest losses.
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
@@ -417,7 +507,10 @@ noaa_data_health_damage %>%
   arrange(-total) %>% 
   pivot_wider(names_from = state_2,
               values_from = total) %>% 
-  rename("Event type" = evtype_rcd)
+  rename("Event type" = evtype_rcd) %>%
+  kable(caption = "Crop damage by event type and state") %>% 
+  kable_styling(latex_options = "striped") %>% 
+  scroll_box(width = "100%", height = "200px")
 
 ```
 We can also evaluate the type of event that caused the most significant damage in the period available in the data. Adding up all the losses, floods are the most economically catastrophic event, followed by hurricanes.
@@ -428,8 +521,11 @@ noaa_data_health_damage %>%
                    ~ sum(.x))) %>% 
   arrange(desc(propdmg_calc)) %>% 
   rename("Event type" = evtype_rcd,
-         "Proprety damage" = propdmg_calc,
-         "Crop damage" = cropdmg_calc)
+         "Property damage" = propdmg_calc,
+         "Crop damage" = cropdmg_calc) %>%
+  kable(caption = "Total property and crop damage by event type and state") %>% 
+  kable_styling(latex_options = "striped") %>% 
+  scroll_box(width = "100%", height = "200px")
 ```
 ```{r echo=T, message=FALSE, warning=FALSE, out.width= "100%"}
 noaa_data_health_damage %>% 
@@ -441,7 +537,8 @@ noaa_data_health_damage %>%
                names_to = "damage",
                values_to = "total") %>% 
   filter(total >= median(total)) %>% 
-  ggplot(aes(evtype_rcd,
+  ggplot(aes(fct_reorder(evtype_rcd,
+                         total),
              total,
              fill = damage))+
   geom_bar(stat = "identity",
@@ -450,7 +547,7 @@ noaa_data_health_damage %>%
   labs(x = "Event type",
        y = "Total damage",
        fill = "Damage type",
-      title = "Proprety and Crop damage (1950 -2011) ")+
+      title = "Total property and Crop damage (1950 -2011)")+
   scale_y_continuous(breaks = c(0, 
                                 5.00E+10,
                                 1.00E+11,
