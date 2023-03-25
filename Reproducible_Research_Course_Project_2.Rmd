@@ -1,6 +1,5 @@
 ---
-title: 'U.S. National Oceanic and Atmospheric Administration''s (NOAA) storm database:
-  damages to population health, properties, and crops'
+title: "U.S. National Oceanic and Atmospheric Administration's (NOAA) storm data base: damages to population health, properties, and crops"
 author:
 - Francisco Pablo Huascar Aragão Pinheiro
 - "Data Science Specialization - Coursera"

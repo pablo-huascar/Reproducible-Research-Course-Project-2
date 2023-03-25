@@ -1,10 +1,15 @@
 ---
 title: "U.S. National Oceanic and Atmospheric Administration's (NOAA) storm data base: damages to population health, properties, and crops"
-author: "Francisco Pablo Huascar Aragão Pinheiro"
+author: 
+  - name: Francisco Pablo Huascar Aragão Pinheiro
+    orcid: 0000-0001-9289-845X
+    email: pablo.pinheiro@ufc.br
+    affiliations: 
+      - name: Universidade Federal do Ceará
+      - name: Data Science Specialization - Coursera  
 format: html
 editor: visual
 ---
-
 
 ## Synopsis
 
