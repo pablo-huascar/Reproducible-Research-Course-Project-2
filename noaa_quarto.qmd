@@ -1,15 +1,10 @@
 ---
-title: 'U.S. National Oceanic and Atmospheric Administration''s (NOAA) storm database:
-  damages to population health, properties, and crops'
-author:
-- Francisco Pablo Huascar Aragão Pinheiro
-- "Data Science Specialization - Coursera"
-date: "2023-02-09"
-output:
-  word_document: default
-  html_document:
-    keep_md: yes
+title: "U.S. National Oceanic and Atmospheric Administration's (NOAA) storm data base: damages to population health, properties, and crops"
+author: "Francisco Pablo Huascar Aragão Pinheiro"
+format: html
+editor: visual
 ---
+
 
 ## Synopsis
 
